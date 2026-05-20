@@ -1,0 +1,127 @@
+name: MCP Continuous Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run health check every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  mcp-health-check:
+    name: MCP Health Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run health check
+      run: node mcp-cli.js check
+      continue-on-error: true
+      
+    - name: Upload health check report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: health-check-report
+        path: health-check-report.json
+        
+    - name: Comment on PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = 'health-check-report.json';
+          
+          if (fs.existsSync(path)) {
+            const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+            let comment = `## MCP Health Check Results\n\n`;
+            comment += `**Status:** ${report.overallStatus.toUpperCase()}\n`;
+            comment += `**Timestamp:** ${new Date(report.timestamp).toLocaleString()}\n\n`;
+            
+            comment += `### Endpoints Tested: ${Object.keys(report.endpoints).length}\n`;
+            comment += `### Errors: ${report.errors.length}\n`;
+            comment += `### Warnings: ${report.warnings.length}\n\n`;
+            
+            if (report.errors.length > 0) {
+              comment += `❌ **Errors:**\n`;
+              report.errors.forEach(error => {
+                comment += `- ${error}\n`;
+              });
+              comment += '\n';
+            }
+            
+            if (report.warnings.length > 0) {
+              comment += `⚠️ **Warnings:**\n`;
+              report.warnings.forEach(warning => {
+                comment += `- ${warning}\n`;
+              });
+              comment += '\n';
+            }
+            
+            comment += `### Endpoints Status:\n`;
+            Object.entries(report.endpoints).forEach(([name, endpoint]) => {
+              const status = endpoint.status === 'healthy' ? '✅' : 
+                           endpoint.status === 'slow' ? '⚠️' : '❌';
+              comment += `${status} ${name}: ${endpoint.status} (${endpoint.responseTime}ms)\n`;
+            });
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }
+          
+    - name: Send Slack alert on failure
+      if: failure() || (github.event_name == 'schedule' && steps.health-check.outcome == 'failure')
+      uses: rtCamp/action-slack@v2
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+      with:
+        status: failure
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+        text: '🚨 MCP Health Check failed in workflow ${{ github.workflow }}'
+        
+  mcp-continuous-monitor:
+    name: MCP Continuous Monitor
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run daemon mode
+      run: |
+        # Run daemon in background for a short test period
+        timeout 30s node mcp-cli.js daemon || true
+        
+    - name: Generate summary report
+      run: |
+        node mcp-cli.js report
+        echo "Generated health check report for continuous monitoring"

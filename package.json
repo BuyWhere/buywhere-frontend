@@ -1,0 +1,64 @@
+{
+  "name": "mcp-continuous-testing",
+  "version": "2.0.0",
+  "description": "MCP Continuous Testing System for Machine Control Plane with Advanced Monitoring",
+  "main": "enhanced-mcp-health-check.js",
+  "bin": {
+    "mcp-health-check": "./mcp-cli.js",
+    "mcp-continuous-testing": "./mcp-cli.js"
+  },
+  "scripts": {
+    "start": "node mcp-health-check.js",
+    "test": "node test-health-check.js",
+    "enhanced-test": "node enhanced-mcp-health-check.js",
+    "cli": "node mcp-cli.js",
+    "daemon": "node mcp-cli.js daemon",
+    "report": "node mcp-cli.js report",
+    "setup": "chmod +x setup-continuous-testing.sh && ./setup-continuous-testing.sh",
+    "monitor": "node enhanced-mcp-health-check.js",
+    "metrics": "node -e \"console.log(require('./enhanced-mcp-health-check.js').generatePrometheusMetrics())\"",
+    "validate": "node mcp-cli.js check && node mcp-cli.js test-webhooks",
+    "stripe-server": "node stripe-server.js",
+    "stripe-test": "node mcp-cli.js stripe-test",
+    "stripe-status": "node mcp-cli.js stripe-status",
+    "stripe-reset": "node mcp-cli.js stripe-reset"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "commander": "^11.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "node-cron": "^3.0.2",
+    "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "supertest": "^6.3.3",
+    "yaml": "^2.3.0"
+  },
+  "keywords": [
+    "health-check",
+    "mcp",
+    "machine-control-plane",
+    "monitoring",
+    "continuous-testing",
+    "alerting",
+    "prometheus",
+    "ci-cd",
+    "automation"
+  ],
+  "author": "Paperclip",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paperclip/mcp-continuous-testing.git"
+  },
+  "bugs": {
+    "url": "https://github.com/paperclip/mcp-continuous-testing/issues"
+  },
+  "homepage": "https://github.com/paperclip/mcp-continuous-testing#readme"
+}

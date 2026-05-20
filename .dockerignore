@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.git
+*.md
+*.log
+.env
+test-*.js
+mcp-*.js
+enhanced-*.js
+stripe-*.js
+refined-*.js
+comprehensive-*.js
+improved-*.js
+unified-*.js
