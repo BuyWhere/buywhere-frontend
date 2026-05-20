@@ -28,30 +28,30 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
-          project_id: buywhere-site-production
+          project_id: gaia-calendar-488606
 
       - name: Configure Docker auth
-        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+        run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev
 
       - name: Build and push Docker image
         run: |
-          IMAGE="us-central1-docker.pkg.dev/buywhere-site-production/buywhere-frontend/buywhere-frontend:$(date +%s)"
+          IMAGE="asia-southeast1-docker.pkg.dev/gaia-calendar-488606/cloud-run-source-deploy/site:$(date +%s)"
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
           gcloud builds submit \
-            --project=buywhere-site-production \
+            --project=gaia-calendar-488606 \
             --tag="$IMAGE" \
             --timeout=600s
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy buywhere-site-production \
-            --project=buywhere-site-production \
+            --project=gaia-calendar-488606 \
             --image="$IMAGE" \
-            --region=us-central1 \
+            --region=asia-southeast1 \
             --platform=managed \
             --allow-unauthenticated \
-            --port=8080 \
-            --memory=256Mi \
+            --port=3000 \
+            --memory=512Mi \
             --cpu=1 \
             --min-instances=0 \
             --max-instances=10 \
@@ -62,8 +62,8 @@ jobs:
       - name: Verify deployment
         run: |
           URL=$(gcloud run services describe buywhere-site-production \
-            --project=buywhere-site-production \
-            --region=us-central1 \
+            --project=gaia-calendar-488606 \
+            --region=asia-southeast1 \
             --format='value(status.url)')
           echo "Service URL: $URL"
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health")
