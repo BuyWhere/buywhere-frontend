@@ -120,13 +120,16 @@ jobs:
           
     - name: Send Slack alert on failure
       if: failure() || (github.event_name == 'schedule' && steps.health_check.outcome == 'failure')
-      uses: rtCamp/action-slack@v2
       env:
-        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-      with:
-        status: failure
-        fields: repo,message,commit,author,action,eventName,ref,workflow
-        text: '🚨 MCP Health Check failed in workflow ${{ github.workflow }}'
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: |
+        if [ -n "$SLACK_WEBHOOK_URL" ]; then
+          curl -fsSL -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚨 MCP Health Check failed in ${{ github.workflow }} on ${{ github.repository }}@${{ github.ref_name }}\"}" \
+            "$SLACK_WEBHOOK_URL"
+        else
+          echo "No SLACK_WEBHOOK_URL secret set; skipping Slack alert."
+        fi
         
   mcp-continuous-monitor:
     name: MCP Continuous Monitor
