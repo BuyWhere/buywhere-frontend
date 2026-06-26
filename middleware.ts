@@ -102,8 +102,10 @@ async function capturePageview(request: NextRequest) {
 export async function middleware(request: NextRequest) {
   const pathname = getCanonicalUrl(request).pathname;
 
-  // Return 410 Gone for /blog/<slug> not in the active allowlist
-  const blogSlugMatch = pathname.match(/^\/blog\/([^/]+)$/);
+  // Return 410 Gone for /blog/<slug> and /blog/<slug>/ not in the active allowlist.
+  // Without this, trailing-slash forms 308-redirect to a near-match page instead
+  // of returning 410, wasting ~540 weekly impressions (BUY-57626).
+  const blogSlugMatch = pathname.match(/^\/blog\/([^/]+)\/?$/);
   if (blogSlugMatch) {
     const slug = blogSlugMatch[1];
     if (!ACTIVE_BLOG_SLUGS.has(slug)) {
